@@ -1,0 +1,110 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=2]
+
+[ext_resource path="res://Palette.png" type="Texture" id=1]
+
+[sub_resource type="Shader" id=6]
+code = "// NOTE: Shader automatically converted from Godot Engine 3.4.stable.mono's SpatialMaterial.
+
+shader_type spatial;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_disabled,vertex_lighting;
+uniform vec4 albedo : hint_color;
+uniform sampler2D texture_albedo : hint_albedo;
+uniform float specular;
+uniform float metallic;
+uniform float roughness : hint_range(0,1);
+uniform float point_size : hint_range(0,128);
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+uniform float sand_height : hint_range(0.0, 1.0);
+
+uint xorshift32(uint seed) {
+	uint x = seed;
+	x = x ^ (x << uint(13));
+	x = x ^ (x >> uint(17));
+	x = x ^ (x << uint(5));
+	return x;
+}
+
+vec3 getColorFromPaletteTexture(int x, int y) {
+	ivec2 uv = ivec2(x, y);
+	return texelFetch(texture_albedo, ivec2(x, y), 0).xyz;
+}
+
+float random(vec2 uv) {
+    return fract(sin(dot(uv.xy,
+        vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+int randomi(vec2 uv, int max_value) {
+	return abs(int(random(uv) * float(max_value)));
+}
+
+varying flat vec3 out_color;
+varying flat vec3 out_vertex;
+varying flat vec3 normal;
+
+void vertex() {
+	vec3 sand_colors[4];
+	sand_colors[0] = getColorFromPaletteTexture(2, 2);
+	sand_colors[1] = getColorFromPaletteTexture(3, 2);
+	sand_colors[2] = getColorFromPaletteTexture(2, 3);
+	sand_colors[3] = getColorFromPaletteTexture(3, 3);
+	
+	vec3 grass_colors[4];
+	grass_colors[0] =  getColorFromPaletteTexture(2, 0);
+	grass_colors[1] = getColorFromPaletteTexture(3, 0);
+	grass_colors[2] = getColorFromPaletteTexture(2, 1);
+	grass_colors[3] = getColorFromPaletteTexture(3, 1);
+	
+	vec3 dirt_colors[4];
+	dirt_colors[0] = getColorFromPaletteTexture(4, 0);
+	dirt_colors[1] = getColorFromPaletteTexture(4, 1);
+	dirt_colors[2] = getColorFromPaletteTexture(5, 0);
+	dirt_colors[3] = getColorFromPaletteTexture(5, 1);
+	
+	float y = VERTEX.y < 0.0 ? 0.0 : VERTEX.y;
+	float height = clamp((VERTEX.y) / 200.0, 0.0, 1.0);
+	int r = randomi(UV, 4);
+
+	int d = randomi(VERTEX.yz, 40);
+	if (d == 0) {
+		out_color = dirt_colors[r];
+	} else if (height > sand_height) {
+		out_color = grass_colors[r];
+	} else {
+		out_color = sand_colors[r];
+	}
+	normal = NORMAL;
+}
+
+void fragment() {
+	ALBEDO = out_color;
+	METALLIC = metallic;
+	ROUGHNESS = roughness;
+	SPECULAR = specular;
+}
+
+//void light() {
+	//int max_level = 3;
+	//int leveli = int(clamp(dot(normal, LIGHT), 0.0, 1.0) * float(max_level));
+	//float level = float(leveli) / float(max_level);
+	//DIFFUSE_LIGHT += clamp(dot(normal, LIGHT), 0.0, 1.0) * ALBEDO * 0.1;
+	//DIFFUSE_LIGHT = ALBEDO;
+	//SPECULAR_LIGHT = ALBEDO;
+//}"
+
+[resource]
+shader = SubResource( 6 )
+shader_param/albedo = Color( 1, 1, 1, 1 )
+shader_param/specular = 0.0
+shader_param/metallic = 0.0
+shader_param/roughness = 1.0
+shader_param/point_size = 1.0
+shader_param/uv1_scale = Vector3( 1, 1, 1 )
+shader_param/uv1_offset = Vector3( 0, 0, 0 )
+shader_param/uv2_scale = Vector3( 1, 1, 1 )
+shader_param/uv2_offset = Vector3( 0, 0, 0 )
+shader_param/sand_height = 0.01
+shader_param/texture_albedo = ExtResource( 1 )
